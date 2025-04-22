@@ -20,3 +20,14 @@
 /* Utility styles */
 @import 'utilities/animations.css';
 @import 'utilities/responsive.css';
+
+/* Fix language dropdown overflow issue in fixed header */
+#site-header .container,
+#site-header nav,
+.language-selector {
+  overflow: visible;
+}
+
+#language-dropdown {
+  z-index: 100; /* Ensure dropdown is above other header elements */
+}
