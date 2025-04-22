@@ -10,6 +10,8 @@
     overflow: hidden;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 0.5rem;
+    position: relative; /* Per posizionare l'indicatore di caricamento */
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 /* Stato iniziale del player - mostra solo il play */
@@ -53,7 +55,8 @@
 /* Animazione per migliorare il feedback visivo del cambio stato */
 .amplitude-player .amplitude-play,
 .amplitude-player .amplitude-pause {
-    transition: all 0.2s ease;
+    transition: opacity 0.2s ease;
+    position: relative;
 }
 
 /* Styling più evidente per il player attivo */
@@ -251,6 +254,70 @@ button.paused .amplitude-pause,
     transform: translateY(-2px);
 }
 
+/* OTTIMIZZAZIONE: Stati di caricamento e buffering */
+/* Stile per il pulsante di play/pause durante il buffering */
+.amplitude-play-pause.buffering {
+    position: relative;
+    pointer-events: none;
+}
+
+/* Animazione di caricamento per il bottone */
+@keyframes buffering-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Overlay semitrasparente durante il buffering */
+.amplitude-play-pause.buffering::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid rgba(74, 108, 247, 0.3);
+    border-top: 2px solid #4a6cf7;
+    border-radius: 50%;
+    animation: buffering-rotate 1s infinite linear;
+}
+
+/* Effetto pulse durante il buffering per i player degli episodi */
+@keyframes buffering-pulse {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+
+/* Player in stato di buffering */
+.amplitude-player.buffering {
+    animation: buffering-pulse 1.5s infinite ease-in-out;
+}
+
+/* Container del player durante il buffering */
+.amplitude-player.buffering .amplitude-visualization-container {
+    opacity: 0.7;
+}
+
+/* Icone nascoste durante il buffering */
+.amplitude-play-pause.buffering .amplitude-play,
+.amplitude-play-pause.buffering .amplitude-pause {
+    opacity: 0.4;
+}
+
+/* Indicator di caricamento per dispositivi touch */
+@keyframes touch-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Per dispositivi touch, mostra un feedback più evidente */
+@media (pointer: coarse) {
+    .amplitude-play-pause.buffering {
+        animation: touch-pulse 1s infinite;
+    }
+}
+
 /* Versione per prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
     .amplitude-visualization-container {
@@ -263,5 +330,13 @@ button.paused .amplitude-pause,
     
     .audio-player-card:hover {
         transform: none;
+    }
+    
+    .amplitude-play-pause.buffering::after {
+        animation: none;
+    }
+    
+    .amplitude-player.buffering {
+        animation: none;
     }
 }

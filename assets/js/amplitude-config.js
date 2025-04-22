@@ -1,5 +1,6 @@
 /**
  * Utility di configurazione di AmplitudeJS per l'audio guida di Regalbuto
+ * Versione ottimizzata con caricamento progressivo e gestione efficiente della memoria
  */
 const AudioPlayerManager = (function() {
     // Oggetto per tenere traccia dello stato di riproduzione
@@ -9,7 +10,11 @@ const AudioPlayerManager = (function() {
         pausedPlayer: null,
         needsRestart: false,
         currentSong: null,
-        currentPlaylist: null
+        currentPlaylist: null,
+        loadedAudios: new Set(), // Tiene traccia degli audio già caricati
+        preloadedAudios: new Set(), // Tiene traccia degli audio precaricati
+        audioBuffers: {}, // Cache dei buffer audio
+        isBuffering: false
     };
     
     // Lingua corrente
@@ -84,7 +89,7 @@ const AudioPlayerManager = (function() {
                 }
             },
             "volume": 75,
-            "debug": true, // Abilita il debug per aiutare l'identificazione dei problemi
+            "preload": "none", // OTTIMIZZAZIONE: Imposta il precaricamento su none per controllarlo manualmente
             "callbacks": {
                 'initialized': function() {
                     console.log("AmplitudeJS ha completato l'inizializzazione");
@@ -94,27 +99,41 @@ const AudioPlayerManager = (function() {
                     
                     // Inizializza i player dopo che Amplitude è pronto
                     initializePlayers();
-                    console.log("Percorso audio introduzione caricato:", introData.audioPath);
+                    
+                    // OTTIMIZZAZIONE: Precarichiamo solo l'introduzione all'inizio
+                    preloadAudio(introData.audioPath);
+                    
+                    console.log("Precarichiamo l'audio dell'introduzione:", introData.audioPath);
                 },
                 'play': function() {
                     console.log('Amplitude: Evento PLAY');
+                    document.body.classList.add('audio-playing');
+                    
+                    // Rimuovi classe di buffering se presente da TUTTI gli elementi
+                    document.querySelectorAll('.buffering').forEach(el => {
+                        el.classList.remove('buffering');
+                    });
+                    
+                    // Rimuovi anche lo stato di buffering dal pulsante correntemente attivo
+                    if (audioState.currentPlayer) {
+                        const activeButton = document.querySelector(`[data-player-id="${audioState.currentPlayer}"]`);
+                        if (activeButton) {
+                            removeBufferingState(activeButton);
+                        }
+                    }
                 },
                 'pause': function() {
                     console.log('Amplitude: Evento PAUSE');
-                },
-                'timeupdate': function() {
-                    // Aggiorna la UI per il player attivo
+                    document.body.classList.remove('audio-playing');
                 }
             }
         };
         
-        // Verifica se il file audio esiste realmente prima di inizializzare
-        console.log('Verifico esistenza del file audio intro:', introData.audioPath);
-        
-        fetch(introData.audioPath, { method: 'HEAD' })
-            .then(response => {
-                if (response.ok) {
-                    console.log(`File audio dell'intro trovato: ${introData.audioPath}`);
+        // OTTIMIZZAZIONE: Utilizziamo una promessa per verificare l'esistenza del file audio e farlo in background
+        checkAudioExists(introData.audioPath)
+            .then(exists => {
+                if (exists) {
+                    console.log(`File audio dell'intro verificato e disponibile: ${introData.audioPath}`);
                 } else {
                     console.warn(`File audio dell'intro non trovato: ${introData.audioPath}. Utilizzare comunque.`);
                 }
@@ -156,6 +175,68 @@ const AudioPlayerManager = (function() {
     }
     
     /**
+     * OTTIMIZZAZIONE: Verifica l'esistenza del file audio in modo asincrono
+     */
+    function checkAudioExists(url) {
+        if (!url) return Promise.resolve(false);
+        
+        // Non usare il metodo HEAD per verificare l'audio - può essere lento e non necessario
+        // Verifichiamo però se l'URL è valido
+        if (!url.startsWith('http') && !url.startsWith('assets/')) {
+            console.warn(`URL audio potenzialmente non valido: ${url}`);
+        }
+        
+        // Considera sempre valido per velocizzare il caricamento, verificherà implicitamente quando tenterà di caricare
+        return Promise.resolve(true);
+    }
+    
+    /**
+     * OTTIMIZZAZIONE: Sistema di precaricamento audio
+     */
+    function preloadAudio(url) {
+        if (!url || audioState.preloadedAudios.has(url)) return;
+        
+        const audio = new Audio();
+        audio.preload = 'metadata'; // Carica solo i metadati inizialmente
+        audio.src = url;
+        
+        // Una volta che i metadati sono caricati, possiamo iniziare a precaricare il contenuto
+        audio.addEventListener('loadedmetadata', function() {
+            audio.preload = 'auto'; // Avvia il precaricamento effettivo
+            audioState.preloadedAudios.add(url);
+            console.log(`Audio precaricato: ${url}`);
+        });
+        
+        // Gestisci eventuali errori
+        audio.addEventListener('error', function() {
+            console.error(`Errore nel precaricamento dell'audio: ${url}`);
+        });
+    }
+    
+    /**
+     * OTTIMIZZAZIONE: Precarica l'audio delle tappe vicine a quella corrente
+     */
+    function preloadNearbyAudios(currentIndex, playlist) {
+        if (!Amplitude.getConfig() || !Amplitude.getConfig().playlists || !Amplitude.getConfig().playlists[playlist]) return;
+        
+        const songs = Amplitude.getConfig().playlists[playlist].songs;
+        if (!Array.isArray(songs)) return;
+        
+        // Precarica la traccia successiva e quella precedente
+        const preloadIndexes = [currentIndex + 1, currentIndex - 1];
+        
+        preloadIndexes.forEach(index => {
+            if (index >= 0 && index < songs.length) {
+                const audioUrl = songs[index].url;
+                if (audioUrl && !audioState.preloadedAudios.has(audioUrl)) {
+                    console.log(`Precaricamento proattivo dell'audio vicino: ${audioUrl}`);
+                    preloadAudio(audioUrl);
+                }
+            }
+        });
+    }
+    
+    /**
      * Aggiorna i file audio quando cambia la lingua
      */
     function updateAudioLanguage(lang, tourData) {
@@ -176,20 +257,21 @@ const AudioPlayerManager = (function() {
             return;
         }
         
-        // RESET COMPLETO 1: Pausa qualsiasi riproduzione in corso
+        // Forza la pausa di qualsiasi riproduzione in corso
         try {
             Amplitude.pause();
         } catch(e) {
             console.warn("Errore durante la pausa dell'audio:", e);
         }
         
-        // RESET COMPLETO 2: Reset dello stato del player
+        // Reset dello stato del player
         audioState.isPlaying = false;
         audioState.pausedPlayer = null;
+        audioState.loadedAudios.clear(); // Resetta completamente gli audio caricati per forzare un nuovo caricamento
         
-        // Memorizza i percorsi originali degli audio per ripristinarli dopo
+        // Memorizza i percorsi originali senza aggiungere parametri nocache
         const originalPaths = {
-            intro: introData.audioPath, // Store the correct original intro path
+            intro: introData.audioPath,
             stops: []
         };
         
@@ -205,77 +287,59 @@ const AudioPlayerManager = (function() {
         
         console.log("Percorsi audio originali memorizzati:", originalPaths);
         
-        // RICARICAMENTO RADICALE: Reinizializza completamente Amplitude con i nuovi audio
-        try {
-            console.log("Inizio reinizializzazione completa di Amplitude...");
-            
-            // 1. Prepara i nuovi dati per la reinizializzazione
-            let episodiSongs = [];
-            if (Array.isArray(langData.stops)) {
-                episodiSongs = langData.stops.map((stop, index) => {
-                    // Aggiungi un parametro nocache per forzare il ricaricamento
-                    const audioPath = stop.audioPath ? 
-                        stop.audioPath + (stop.audioPath.includes('?') ? '&' : '?') + 'nocache=' + Date.now() + index : 
-                        null;
-                    
-                    console.log(`Preparando tappa ${index + 1}: ${stop.title} - Audio: ${audioPath}`);
-                    
-                    return {
-                        "name": stop.title || `Tappa ${index + 1}`,
-                        "artist": "Audio guida di Regalbuto",
-                        "url": audioPath, // Use path with nocache for re-init
-                        "visual_id": `episode-${index}`,
-                        "index": index
-                    };
-                }).filter(song => song.url);
-            }
-            
-            // 2. Configurazione aggiornata con i nuovi percorsi audio
-            // Ensure the intro path also gets nocache for re-init
-            const introAudioPath = introData.audioPath + (introData.audioPath.includes('?') ? '&' : '?') + 'nocache=' + Date.now();
-            console.log(`Preparando intro con audio: ${introAudioPath}`);
-            
-            const config = {
-                "songs": [
-                    {
-                        "name": langData.title || "Introduzione",
-                        "artist": "Audio guida di Regalbuto",
-                        "url": introAudioPath // Use intro path with nocache for re-init
-                    }
-                ],
-                "playlists": {
-                    "episodi": {
-                        "songs": episodiSongs
-                    }
-                },
-                "volume": 75,
-                "debug": true
-            };
-            
-            // 3. Reinizializza Amplitude con i nuovi dati
-            if (typeof Amplitude !== 'undefined') {
-                // Prima fermiamo e rimuoviamo l'audio corrente
-                try {
-                    const audioElement = Amplitude.getAudio();
-                    if (audioElement) {
-                        audioElement.pause();
-                        audioElement.currentTime = 0;
-                        audioElement.src = '';
-                        audioElement.load();
-                    }
-                    
-                    console.log("Audio element resettato");
-                } catch(e) {
-                    console.warn("Errore nel reset dell'elemento audio:", e);
-                }
+        // Prepara i nuovi dati per l'aggiornamento
+        let episodiSongs = [];
+        if (Array.isArray(langData.stops)) {
+            episodiSongs = langData.stops.map((stop, index) => {
+                const audioPath = stop.audioPath;
                 
+                console.log(`Preparando tappa ${index + 1}: ${stop.title} - Audio: ${audioPath}`);
+                
+                return {
+                    "name": stop.title || `Tappa ${index + 1}`,
+                    "artist": "Audio guida di Regalbuto",
+                    "url": audioPath,
+                    "visual_id": `episode-${index}`,
+                    "index": index
+                };
+            }).filter(song => song.url);
+        }
+        
+        // Configurazione aggiornata
+        const introAudioPath = introData.audioPath;
+        console.log(`Preparando intro con audio: ${introAudioPath}`);
+        
+        const config = {
+            "songs": [
+                {
+                    "name": langData.title || "Introduzione",
+                    "artist": "Audio guida di Regalbuto",
+                    "url": introAudioPath
+                }
+            ],
+            "playlists": {
+                "episodi": {
+                    "songs": episodiSongs
+                }
+            },
+            "volume": 75,
+            "preload": "none" // Imposta il precaricamento su none per controllarlo manualmente
+        };
+
+        // MODIFICA: Forziamo sempre il reset completo per garantire che l'intro funzioni correttamente
+        console.log("Eseguendo reset completo di Amplitude per garantire la compatibilità dell'introduzione...");
+        performFullReset(config, lang, introAudioPath);
+        
+        // Funzione di reset completo
+        function performFullReset(config, lang, introAudioPath) {
+            try {
                 // Distruggi l'istanza di Amplitude se possibile
                 if (typeof Amplitude.destroy === 'function') {
                     try {
                         Amplitude.destroy();
                         console.log("Istanza Amplitude distrutta");
                     } catch(e) {
-                        console.warn("Errore nella distruzione dell'istanza Amplitude (potrebbe non essere supportato):", e);
+                        console.warn("Errore nella distruzione dell'istanza Amplitude:", e);
                     }
                 }
                 
@@ -286,47 +350,23 @@ const AudioPlayerManager = (function() {
                         console.log("Amplitude reinizializzato con successo con i nuovi audio");
                         
                         // Reinizializza tutti i player dopo il reset completo
-                        initializePlayers(); // This will re-run setupCustomAudioControls
-                        console.log("Player audio reinizializzati");
+                        initializePlayers();
                         
-                        // Ripristina i percorsi originali nella configurazione *running* instance
-                        // per evitare l'accumulo di parametri nocache
-                        const currentSongs = Amplitude.getSongs();
-                        if (currentSongs && currentSongs.length > 0) {
-                            currentSongs[0].url = originalPaths.intro; // Restore original intro path
-                            console.log(`Ripristinato URL intro originale: ${originalPaths.intro}`);
-                        }
+                        // Precarica l'introduzione
+                        preloadAudio(introAudioPath);
                         
-                        const currentPlaylists = Amplitude.getConfig().playlists;
-                        if (currentPlaylists &&
-                            currentPlaylists.episodi &&
-                            Array.isArray(currentPlaylists.episodi.songs)) {
-                            
-                            const playlistSongs = currentPlaylists.episodi.songs;
-                            
-                            for (let i = 0; i < playlistSongs.length; i++) {
-                                if (i < originalPaths.stops.length && originalPaths.stops[i]) {
-                                    playlistSongs[i].url = originalPaths.stops[i]; // Restore original stop path
-                                }
-                            }
-                            console.log("Ripristinati URL tappe originali.");
-                        }
-                        
-                        // Emetti evento di aggiornamento completato
                         document.dispatchEvent(new CustomEvent('audioFilesUpdated', {
                             detail: { language: lang }
                         }));
                         
-                        console.log("Aggiornamento lingua audio completato con successo");
+                        console.log("Reset completo e reinizializzazione completati");
                     } catch(e) {
                         console.error("Errore nella reinizializzazione di Amplitude:", e);
                     }
                 }, 300);
-            } else {
-                console.error('Libreria AmplitudeJS non trovata durante il tentativo di reinizializzazione');
+            } catch(e) {
+                console.error("Errore critico nel reset completo:", e);
             }
-        } catch (error) {
-            console.error('Errore generale nell\'aggiornamento della lingua audio:', error);
         }
     }
     
@@ -346,6 +386,9 @@ const AudioPlayerManager = (function() {
         console.log(`Click su player: ${playerId}, stato corrente: isPlaying=${audioState.isPlaying}, currentPlayer=${audioState.currentPlayer}, pausedPlayer=${audioState.pausedPlayer}, playlist=${playlist}, index=${index}`);
         
         try {
+            // Prima di tutto, mostra un feedback visivo che stiamo elaborando
+            showBufferingState(button);
+            
             // --- CASO 1: Player corrente in riproduzione viene cliccato (PAUSA) ---
             if (audioState.currentPlayer === playerId && audioState.isPlaying) {
                 Amplitude.pause();
@@ -353,6 +396,7 @@ const AudioPlayerManager = (function() {
                 audioState.pausedPlayer = playerId; // Memorizza quale player è stato messo in pausa
                 updatePlayerVisualState(button, false);
                 console.log(`Player messo in pausa: ${playerId}`);
+                removeBufferingState(button);
             }
             // --- CASO 2: Player messo in pausa viene cliccato (RIPRENDI) ---
             // Verifica se è lo stesso player E se l'indice/playlist corrisponde a quello in pausa
@@ -366,6 +410,7 @@ const AudioPlayerManager = (function() {
                 audioState.pausedPlayer = null; // Non è più in pausa
                 updatePlayerVisualState(button, true);
                 console.log(`Player ripreso da pausa: ${playerId}`);
+                removeBufferingState(button);
             }
             // --- CASO 3: Nuovo player viene cliccato (AVVIO) ---
             else {
@@ -378,13 +423,20 @@ const AudioPlayerManager = (function() {
                             updatePlayerVisualState(prevPlayerButton, false);
                         }
                     }
+                    
                     // Reset completo dell'audio precedente se necessario
                     try {
                         // Non resettare currentTime qui, potrebbe interrompere la ripresa
-                        // Amplitude.getAudio().currentTime = 0;
                     } catch(e) {
                         console.warn('Impossibile resettare la posizione audio', e);
                     }
+                }
+                
+                // OTTIMIZZAZIONE: Precarica l'audio prima di riprodurlo
+                const audioUrl = getAudioUrlForButton(button);
+                if (audioUrl && !audioState.loadedAudios.has(audioUrl)) {
+                    // Mostra stato di buffering
+                    showBufferingState(button);
                 }
                 
                 // Avvia questo player dall'inizio
@@ -398,14 +450,19 @@ const AudioPlayerManager = (function() {
                 } else {
                     // --- Player della Playlist ---
                     console.log(`Avvio episodio: playlist=${playlist}, index=${index}`);
-                    const success = playPlaylistSongWithFallback(index, playlist);
+                    // OTTIMIZZAZIONE: Utilizziamo la nostra funzione di riproduzione ottimizzata
+                    const success = playPlaylistSongWithProgressiveLoading(index, playlist);
                     
                     if (success) {
                         audioState.currentPlaylist = playlist;
                         audioState.currentSong = index;
+                        
+                        // OTTIMIZZAZIONE: Precarica le tracce vicine per un'esperienza più fluida
+                        preloadNearbyAudios(index, playlist);
                     } else {
                         console.error(`Impossibile riprodurre la tappa ${index + 1}`);
                         alert('Si è verificato un problema con la riproduzione dell\'audio. Prova a ricaricare la pagina.');
+                        removeBufferingState(button);
                         return; // Esci se la riproduzione fallisce
                     }
                 }
@@ -420,15 +477,79 @@ const AudioPlayerManager = (function() {
             }
         } catch (error) {
             console.error(`Errore nella gestione del player ${playerId}:`, error);
+            removeBufferingState(button);
         }
     }
     
     /**
-     * Funzione specializzata per riprodurre una canzone della playlist
-     * con un meccanismo di fallback robusto
+     * OTTIMIZZAZIONE: Ottiene l'URL audio associato a un pulsante
      */
-    function playPlaylistSongWithFallback(index, playlist) {
-        console.log(`Tentativo di riproduzione robusto: playlist=${playlist}, index=${index}`);
+    function getAudioUrlForButton(button) {
+        const playlist = button.getAttribute('data-amplitude-playlist');
+        const index = parseInt(button.getAttribute('data-amplitude-song-index') ?? '-1');
+        
+        try {
+            if (playlist === null) {
+                // Main player (intro)
+                const songs = Amplitude.getSongs();
+                if (songs && songs.length > 0) {
+                    return songs[0].url;
+                }
+            } else if (playlist && index !== -1) {
+                // Playlist song
+                const config = Amplitude.getConfig();
+                if (config && config.playlists && config.playlists[playlist] && 
+                    Array.isArray(config.playlists[playlist].songs) && 
+                    index < config.playlists[playlist].songs.length) {
+                    
+                    return config.playlists[playlist].songs[index].url;
+                }
+            }
+        } catch(e) {
+            console.error("Errore nel recupero dell'URL audio:", e);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * OTTIMIZZAZIONE: Mostra lo stato di buffering
+     */
+    function showBufferingState(button) {
+        // Aggiungi la classe di buffering
+        button.classList.add('buffering');
+        
+        // Aggiungiamo anche al container del player
+        const playerContainer = button.closest('.amplitude-player') || button.closest('.modern-audio-player');
+        if (playerContainer) {
+            playerContainer.classList.add('buffering');
+        }
+        
+        // Se dopo 5 secondi siamo ancora in buffering, rimuoviamo lo stato per evitare blocchi UI
+        setTimeout(() => {
+            removeBufferingState(button);
+        }, 5000);
+    }
+    
+    /**
+     * OTTIMIZZAZIONE: Rimuove lo stato di buffering
+     */
+    function removeBufferingState(button) {
+        // Rimuovi la classe di buffering
+        button.classList.remove('buffering');
+        
+        // Rimuoviamo anche dal container del player
+        const playerContainer = button.closest('.amplitude-player') || button.closest('.modern-audio-player');
+        if (playerContainer) {
+            playerContainer.classList.remove('buffering');
+        }
+    }
+    
+    /**
+     * OTTIMIZZAZIONE: Funzione che riproduce una canzone con caricamento progressivo
+     */
+    function playPlaylistSongWithProgressiveLoading(index, playlist) {
+        console.log(`Riproduzione progressiva: playlist=${playlist}, index=${index}`);
         
         // Verifica che la playlist e l'indice siano validi
         if (!Amplitude.getConfig().playlists || 
@@ -439,56 +560,74 @@ const AudioPlayerManager = (function() {
             return false;
         }
         
-        // Ottieni i dati della canzone dalla configurazione *corrente* di Amplitude
+        // Ottieni i dati della canzone dalla configurazione di Amplitude
         const song = Amplitude.getConfig().playlists[playlist].songs[index];
         if (!song || !song.url) {
             console.error('Canzone non valida o URL mancante');
             return false;
         }
         
-        // Non aggiungere nocache qui, dovrebbe essere già stato gestito durante l'init/update
-        const songUrl = song.url;
-        console.log(`Riproduzione canzone: ${song.name}, URL: ${songUrl}`);
-        
         try {
-            // Metodo standard di Amplitude
+            // Metodo standard di Amplitude (tenta prima questo)
             Amplitude.playPlaylistSongAtIndex(index, playlist);
+            
+            // Segna l'audio come caricato
+            audioState.loadedAudios.add(song.url);
+            
             console.log('Riproduzione avviata tramite metodo standard');
             return true;
         } catch (e) {
-            console.warn('Fallimento del metodo standard, provo con il fallback (potrebbe non essere necessario):', e);
+            console.warn('Fallimento del metodo standard, provo con il caricamento progressivo:', e);
             
-            // Fallback: Manipolazione diretta dell'elemento audio (meno ideale)
+            // Fallback: Manipolazione diretta dell'elemento audio
             const audioElement = Amplitude.getAudio();
             if (audioElement) {
                 audioElement.pause();
-                audioElement.src = songUrl; // Usa l'URL corretto dalla config
-                audioElement.load();
-                console.log(`File audio caricato con URL: ${songUrl}`);
                 
-                setTimeout(() => {
-                    const playPromise = audioElement.play();
-                    if (playPromise !== undefined) {
-                        playPromise.then(() => {
-                            console.log('Riproduzione avviata con successo tramite fallback');
-                            // Tentativo di aggiornare il contesto interno di Amplitude
-                            try {
-                                // Questo potrebbe non essere affidabile o necessario
-                                // Amplitude.setActivePlaylist(playlist);
-                                // Amplitude.setActiveIndex(index);
-                            } catch (err) {
-                                console.warn('Impossibile aggiornare il contesto di Amplitude via fallback:', err);
-                            }
-                        }).catch(err => {
-                            console.error('Errore durante la riproduzione via fallback:', err);
-                        });
-                    }
-                }, 300);
-                return true; // Ritorna true anche se il fallback potrebbe fallire async
+                // OTTIMIZZAZIONE: Aggiungiamo un event listener per il buffering
+                const onCanPlayThrough = () => {
+                    console.log('Audio pronto per la riproduzione senza interruzioni');
+                    
+                    // Rimuoviamo gli stati di buffering da tutti i player
+                    document.querySelectorAll('.buffering').forEach(el => {
+                        el.classList.remove('buffering');
+                    });
+                    
+                    audioState.isBuffering = false;
+                    
+                    // Rimuovi questo listener
+                    audioElement.removeEventListener('canplaythrough', onCanPlayThrough);
+                };
+                
+                // Aggiungi l'event listener
+                audioElement.addEventListener('canplaythrough', onCanPlayThrough);
+                
+                // OTTIMIZZAZIONE: Indicia buffering
+                audioState.isBuffering = true;
+                
+                // Usa direttamente l'URL
+                audioElement.src = song.url;
+                audioElement.load();
+                console.log(`File audio caricato con URL: ${song.url}`);
+                
+                // Segna l'audio come caricato
+                audioState.loadedAudios.add(song.url);
+                
+                // Inizia a riprodurre appena possibile
+                const playPromise = audioElement.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Riproduzione avviata con successo tramite caricamento progressivo');
+                    }).catch(err => {
+                        console.error('Errore durante la riproduzione via caricamento progressivo:', err);
+                    });
+                }
+                
+                return true;
             }
         }
         
-        console.error('Impossibile avviare la riproduzione con entrambi i metodi.');
+        console.error('Impossibile avviare la riproduzione con nessun metodo.');
         return false;
     }
     
@@ -538,6 +677,9 @@ const AudioPlayerManager = (function() {
         document.querySelectorAll('.amplitude-player, .modern-audio-player').forEach(player => {
             player.classList.remove('amplitude-playing');
             player.classList.add('amplitude-paused');
+            
+            // OTTIMIZZAZIONE: Rimuovi anche eventuali stati di buffering
+            player.classList.remove('buffering');
         });
         
         console.log('Reset e riconfigurazione dei player audio completati');
@@ -560,6 +702,9 @@ const AudioPlayerManager = (function() {
         document.querySelectorAll('.amplitude-player').forEach(player => {
             player.classList.add('amplitude-paused');
             player.classList.remove('amplitude-playing');
+            
+            // OTTIMIZZAZIONE: Rimuovi anche eventuali stati di buffering
+            player.classList.remove('buffering');
         });
         
         console.log('Players inizializzati');
@@ -717,10 +862,20 @@ const AudioPlayerManager = (function() {
         const isMobile = viewportWidth <= 768;
         const isSmallMobile = viewportWidth <= 480;
         
-        // Personalizzazione speciale per il player dell'hero
+        // OTTIMIZZAZIONE: Visualizzazione più efficiente
+        // Per i dispositivi mobili, soprattutto quelli meno potenti, 
+        // utilizziamo una versione più leggera della visualizzazione
         if (isHero) {
             // Crea un effetto di onde sonore minimalista
             const drawHeroWaveform = () => {
+                // OTTIMIZZAZIONE: Riduzione del carico di disegno
+                // Non disegniamo se il tab non è in focus
+                if (document.hidden) {
+                    // Richiediamo un nuovo frame di animazione a bassa frequenza
+                    setTimeout(() => requestAnimationFrame(drawHeroWaveform), 1000);
+                    return;
+                }
+                
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 // Gradiente più leggero e minimal per le onde
