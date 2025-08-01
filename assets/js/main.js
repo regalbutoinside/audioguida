@@ -938,7 +938,7 @@ function setupTimeControls() {
 
                     console.log(`Posizione attuale: ${currentTime}s, durata: ${duration}s`);
 
-                    if (!isNaN(currentTime) && !isNaN(duration) && durata > 0) {
+                    if (!isNaN(currentTime) && !isNaN(duration) && duration > 0) {
                         const newPosition = Math.min(currentTime + 30, duration);
                         console.log(`Nuova posizione: ${newPosition}s`);
                         audioElement.currentTime = newPosition;
