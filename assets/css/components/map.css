@@ -1,171 +1,510 @@
-/* Stili per la mappa interattiva dell'audioguida */
+/* Map Components - Styles for interactive map page */
 
+/* Fix for Leaflet conflicts with global CSS rules */
+.leaflet-container,
+.leaflet-container *,
+.leaflet-pane,
+.leaflet-pane *,
+.leaflet-layer,
+.leaflet-layer *,
+.leaflet-marker-icon,
+.leaflet-marker-icon *,
+.leaflet-popup,
+.leaflet-popup *,
+.leaflet-control,
+.leaflet-control * {
+    max-width: none !important;
+    box-sizing: content-box !important;
+}
+
+/* Restore box-sizing for specific elements that need it */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-content,
+.custom-popup *,
+.popup-content *,
+.map-info *,
+.leaflet-control-custom * {
+    box-sizing: border-box !important;
+}
+
+/* Map Container */
 .map-container {
-    height: 400px;
-    width: 100%;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    border: 1px solid rgba(209, 213, 219, 1);
-    transition: all 0.3s ease;
-}
-
-.map-container.expanded {
-    height: 600px;
-}
-
-.map-page-container {
-    height: calc(100vh - 180px);
-    min-height: 500px;
-}
-
-.leaflet-popup-content {
-    font-family: inherit;
-    margin: 10px;
-    line-height: 1.5;
-}
-
-.leaflet-popup-content h4 {
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: var(--color-primary);
-}
-
-/* Prevenire problemi di sovrapposizione della mappa */
-.leaflet-top, .leaflet-bottom {
-    z-index: 900 !important; /* Più basso dell'header che è 1000 */
-}
-
-.map-button {
     position: relative;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+    max-height: 800px;
+    width: 100%;
+    background-color: #f8fafc;
+    border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+}
+
+/* Main Map */
+.map {
+    height: 100%;
+    width: 100%;
+    position: relative;
     z-index: 1;
 }
 
-.map-button::after {
-    content: '';
+/* Loading Indicator */
+.map-loading {
     position: absolute;
-    background: rgba(107, 70, 193, 0.1);
-    width: 100%;
-    height: 100%;
-    border-radius: inherit;
-    top: 0;
-    left: 0;
-    transform: scale(0);
-    transition: transform 0.3s ease;
-    z-index: -1;
-}
-
-.map-button:hover::after {
-    transform: scale(1);
-}
-
-.map-controls {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 910; /* Alto abbastanza ma sempre sotto l'header */
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.map-control-button {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10;
     background: white;
-    border: 1px solid rgba(209, 213, 219, 1);
-    border-radius: 0.25rem;
-    width: 34px; /* Leggermente più grandi per una migliore interazione */
-    height: 34px;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+}
+
+.loading-spinner {
+    margin-bottom: 1rem;
+}
+
+/* Animation */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.7;
+    }
+}
+
+/* Custom Numbered Markers */
+.custom-marker {
+    background: transparent !important;
+    border: none !important;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    /* Override global max-width constraints */
+    max-width: none !important;
+    width: 32px !important;
+    height: 32px !important;
+}
+
+.marker-container {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%);
+    /* Ensure fixed dimensions */
+    max-width: none !important;
+    min-width: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
+}
+
+/* Remove keyframe animations - no longer needed */
+
+.marker-circle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Ensure fixed dimensions */
+    max-width: none !important;
+    min-width: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
+}
+
+.marker-circle:hover {
+    transform: translateX(-50%) scale(1.15);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.marker-circle:active {
+    transform: translateX(-50%) scale(0.95);
+}
+
+.marker-number {
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+/* Highlighted marker state */
+.custom-marker.highlighted .marker-circle {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    transform: translateX(-50%) scale(1.2);
+}
+
+@keyframes highlightPulse {
+    0%, 100% {
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+    }
+    50% {
+        box-shadow: 0 8px 25px rgba(245, 158, 11, 0.8);
+    }
+}
+
+/* Custom Popup Styles */
+.leaflet-popup-content-wrapper {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    /* Ensure proper box model */
+    max-width: 300px !important;
+    min-width: 250px;
+}
+
+.leaflet-popup-content {
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+    font-size: 14px;
+    /* Override global constraints */
+    max-width: none !important;
+    width: auto !important;
+}
+
+.custom-popup .popup-content {
+    padding: 0;
+    max-width: none !important;
+}
+
+.popup-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.popup-number {
+    background: rgba(255, 255, 255, 0.2);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.popup-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.popup-duration {
+    background: #f8fafc;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #64748b;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: 500;
+}
+
+.popup-description {
+    padding: 16px;
+    margin: 0;
+    color: #475569;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.popup-actions {
+    padding: 12px 16px 16px;
+    display: flex;
+    gap: 8px;
+}
+
+.popup-btn {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    color: var(--color-primary);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.popup-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.popup-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.popup-btn.secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.popup-btn.secondary:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-tip {
+    background: white;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-popup-close-button {
+    color: white !important;
+    font-size: 18px !important;
+    padding: 8px !important;
+    width: auto !important;
+    height: auto !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 4px !important;
+    margin: 8px 8px 0 0 !important;
+    transition: all 0.2s ease !important;
+}
+
+.leaflet-popup-close-button:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: scale(1.1) !important;
+}
+
+/* Custom Map Controls */
+.map-info {
+    pointer-events: auto;
+}
+
+.leaflet-control-custom {
+    cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.map-control-button:hover {
-    background: #f9fafb;
-    color: var(--color-primary-dark);
+.leaflet-control-custom:hover {
+    background-color: #f3f4f6 !important;
+    transform: scale(1.05);
 }
 
-/* Stili per la pagina dedicata alla mappa */
-.map-page-content {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+.leaflet-control-custom i {
+    color: #374151;
+    transition: color 0.2s ease;
 }
 
-.map-sidebar {
-    background-color: white;
-    border-radius: 0.75rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid rgba(209, 213, 219, 1);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+.leaflet-control-custom:hover i {
+    color: #6366f1;
 }
 
-/* Migliore visibilità per gli elementi sidebar selezionati */
-.map-sidebar-item.active {
-    border-color: var(--color-primary) !important;
-    background-color: rgba(107, 70, 193, 0.05);
+/* Loading improvements */
+.map-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 1000;
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
 }
 
-@media (min-width: 768px) {
-    .map-page-content {
-        flex-direction: row;
-        gap: 1.5rem;
-        height: calc(100vh - 200px); /* Assicura che si adatti all'area visibile */
-        min-height: 600px; /* Altezza minima ragionevole */
+/* Leaflet attribution customization */
+.leaflet-control-attribution {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+/* Leaflet zoom control customization */
+.leaflet-control-zoom {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+}
+
+.leaflet-control-zoom a {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    border: none;
+    color: #374151;
+    transition: all 0.2s ease;
+    /* Ensure proper dimensions */
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    max-width: none !important;
+}
+
+.leaflet-control-zoom a:hover {
+    background: #f3f4f6;
+    color: #6366f1;
+    transform: scale(1.05);
+}
+
+/* Scale control customization */
+.leaflet-control-scale {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(5px);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .marker-container {
+        width: 28px;
+        height: 28px;
     }
     
-    .map-sidebar {
-        width: 300px;
-        margin-bottom: 0;
-        max-height: 100%; /* Usa l'altezza totale disponibile */
-        overflow-y: auto;
-        padding-right: 0.75rem; /* Compensare la scrollbar */
+    .marker-circle {
+        width: 24px;
+        height: 24px;
     }
     
-    .map-main-container {
-        flex: 1;
-        height: 100%;
-        display: flex;
+    .marker-number {
+        font-size: 11px;
+    }
+    
+    .popup-actions {
         flex-direction: column;
     }
     
-    /* Assicura che il container della mappa riempia lo spazio disponibile */
-    .map-main-container > div {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
+    .popup-btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 14px;
     }
     
-    .map-container {
-        flex: 1;
+    .leaflet-popup-content-wrapper {
+        border-radius: 8px;
+    }
+    
+    .popup-header {
+        padding: 12px;
+    }
+    
+    .popup-title {
+        font-size: 15px;
+    }
+    
+    .popup-description {
+        padding: 12px;
+        font-size: 13px;
     }
 }
 
-/* Miglioramenti per dispositivi mobili */
-@media (max-width: 767px) {
+/* Optional: Zoom-based marker scaling using CSS (safe approach) */
+.leaflet-zoom-anim .custom-marker {
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 480px) {
+    .marker-container {
+        width: 32px;
+        height: 42px;
+    }
+    
+    .marker-circle {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .marker-number {
+        font-size: 11px;
+    }
+}
+
+/* High DPI / Retina displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .marker-circle {
+        border-width: 2px;
+    }
+    
+    .marker-number {
+        text-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .marker-container {
+        animation: none;
+    }
+    
+    .marker-circle {
+        animation: none;
+        transition: transform 0.2s ease;
+    }
+    
+    .marker-circle:hover {
+        transform: translateX(-50%) scale(1.05);
+    }
+    
+    .custom-marker.highlighted .marker-circle {
+        animation: none;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+}
+
+/* Print styles */
+@media print {
+    .leaflet-popup {
+        display: none;
+    }
+    
+    .marker-circle {
+        background: #333 !important;
+        border-color: white !important;
+        box-shadow: none !important;
+    }
+    
+    .marker-number {
+        color: white !important;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
     .map-container {
-        height: 70vh; /* Altezza più adeguata su mobile */
-        min-height: 350px;
-    }
-    
-    .map-controls {
-        top: auto;
-        bottom: 10px;
-    }
-    
-    .map-sidebar {
-        max-height: 50vh; /* Limita l'altezza della sidebar su mobile */
-        overflow-y: auto;
-    }
-    
-    /* Migliora la visualizzazione della barra di navigazione su mobile */
-    .nav-link {
-        padding: 12px 0;
-        font-size: 16px;
+        height: calc(100vh - 150px);
+        min-height: 400px;
     }
 }

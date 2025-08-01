@@ -16,6 +16,7 @@
 @import 'components/transcription.css';
 @import 'components/audio-player.css';
 @import 'components/intro-section.css';
+@import 'components/map.css';
 
 /* Utility styles */
 @import 'utilities/animations.css';

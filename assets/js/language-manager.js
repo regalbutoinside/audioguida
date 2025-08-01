@@ -25,7 +25,10 @@ const LanguageManager = (function() {
             'footer-license': 'Licenza CC BY-SA 4.0',
             'findOutStops': 'Scopri le tappe',
             'discoverStops': 'Scopri tutte le tappe',
-            'scrollToStops': 'Scorri verso le tappe del tour'
+            'scrollToStops': 'Scorri verso le tappe del tour',
+            'map-title': 'Mappa delle Tappe',
+            'map-description': 'Esplora tutti i luoghi del tour attraverso una mappa interattiva. Clicca sui marcatori per scoprire informazioni dettagliate su ogni tappa.',
+            'map-loading': 'Caricamento mappa...'
         },
         'en': {
             'tourButton': 'Start the tour',
@@ -42,7 +45,10 @@ const LanguageManager = (function() {
             'footer-license': 'CC BY-SA 4.0 License',
             'findOutStops': 'Discover the stops',
             'discoverStops': 'Discover all stops',
-            'scrollToStops': 'Scroll to tour stops'
+            'scrollToStops': 'Scroll to tour stops',
+            'map-title': 'Stops Map',
+            'map-description': 'Explore all tour locations through an interactive map. Click on markers to discover detailed information about each stop.',
+            'map-loading': 'Loading map...'
         },
         'es': {
             'tourButton': 'Iniciar el tour',
@@ -59,7 +65,10 @@ const LanguageManager = (function() {
             'footer-license': 'Licencia CC BY-SA 4.0',
             'findOutStops': 'Descubre las paradas',
             'discoverStops': 'Descubre todas las paradas',
-            'scrollToStops': 'Desplázate a las paradas del tour'
+            'scrollToStops': 'Desplázate a las paradas del tour',
+            'map-title': 'Mapa de Paradas',
+            'map-description': 'Explora todos los lugares del tour a través de un mapa interactivo. Haz clic en los marcadores para descubrir información detallada sobre cada parada.',
+            'map-loading': 'Cargando mapa...'
         },
         'de': {
             'tourButton': 'Tour starten',
@@ -76,7 +85,10 @@ const LanguageManager = (function() {
             'footer-license': 'CC BY-SA 4.0 Lizenz',
             'findOutStops': 'Entdecke die Stationen',
             'discoverStops': 'Entdecke alle Stationen',
-            'scrollToStops': 'Zu den Tour-Stationen scrollen'
+            'scrollToStops': 'Zu den Tour-Stationen scrollen',
+            'map-title': 'Stationskarte',
+            'map-description': 'Erkunden Sie alle Tour-Orte über eine interaktive Karte. Klicken Sie auf die Markierungen, um detaillierte Informationen zu jeder Station zu entdecken.',
+            'map-loading': 'Karte wird geladen...'
         },
         'fr': {
             'tourButton': 'Commencer la visite',
@@ -93,7 +105,10 @@ const LanguageManager = (function() {
             'footer-license': 'Licence CC BY-SA 4.0',
             'findOutStops': 'Découvrez les étapes',
             'discoverStops': 'Découvrez toutes les étapes',
-            'scrollToStops': 'Défiler vers les étapes de la visite'
+            'scrollToStops': 'Défiler vers les étapes de la visite',
+            'map-title': 'Carte des Étapes',
+            'map-description': 'Explorez tous les lieux de la visite à travers une carte interactive. Cliquez sur les marqueurs pour découvrir des informations détaillées sur chaque étape.',
+            'map-loading': 'Chargement de la carte...'
         }
     };
     
