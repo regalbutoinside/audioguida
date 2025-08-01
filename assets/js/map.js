@@ -152,11 +152,11 @@ class AudioGuideMap {
                 stopData: stop
             }).addTo(this.map);
 
-            // Create popup with card-like design matching home page
+            // Create popup with simple, clean design
             const popupContent = this.createPopupContent(stop);
             marker.bindPopup(popupContent, {
-                maxWidth: 320,
-                className: 'tour-stop-popup'
+                maxWidth: 280,
+                className: 'simple-tour-popup'
             });
 
             // Add click handler
@@ -172,71 +172,68 @@ class AudioGuideMap {
     }
 
     createCustomIcon(iconClass, order) {
-        // Create icon color based on stop type
-        let iconColor = this.config.colors.primary;
-        if (iconClass.includes('church')) {
-            iconColor = this.config.colors.secondary;
-        } else if (iconClass.includes('tree') || iconClass.includes('water')) {
-            iconColor = this.config.colors.accent;
-        }
-
+        // Create a simple SVG marker instead of complex HTML
+        const svg = this.generateMarkerSVG(order, iconClass);
+        
         return L.divIcon({
-            html: `
-                <div class="map-marker-wrapper">
-                    <div class="map-marker-main" style="border-color: ${iconColor};">
-                        <div class="map-marker-number" style="background-color: ${iconColor};">
-                            ${order}
-                        </div>
-                    </div>
-                    <div class="map-marker-tip" style="border-top-color: ${iconColor};"></div>
-                </div>
-            `,
-            className: 'custom-marker-icon',
-            iconSize: [48, 48],
-            iconAnchor: [24, 48],
-            popupAnchor: [0, -48]
+            html: svg,
+            className: 'simple-marker-icon',
+            iconSize: [32, 40],
+            iconAnchor: [16, 40],
+            popupAnchor: [0, -40]
         });
     }
 
-    createPopupContent(stop) {
-        // Create popup content that matches home page card design exactly
+    generateMarkerSVG(order, iconClass) {
+        // Determine color based on stop type
+        let color = '#6b46c1'; // primary purple
+        if (iconClass.includes('church')) {
+            color = '#3b82f6'; // blue
+        } else if (iconClass.includes('tree') || iconClass.includes('water')) {
+            color = '#10b981'; // green
+        }
+
+        // Create a simple, reliable SVG marker
         return `
-            <div class="map-popup-card">
-                <!-- Header with image -->
-                <div class="map-popup-header">
+            <svg width="32" height="40" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
+                <!-- Drop shadow -->
+                <ellipse cx="16" cy="38" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>
+                <!-- Main marker shape -->
+                <path d="M16 0C7.2 0 0 7.2 0 16c0 16 16 24 16 24s16-8 16-24C32 7.2 24.8 0 16 0z" fill="${color}"/>
+                <!-- Inner circle -->
+                <circle cx="16" cy="16" r="10" fill="white"/>
+                <!-- Number text -->
+                <text x="16" y="21" text-anchor="middle" fill="${color}" font-family="Arial, sans-serif" font-size="12" font-weight="bold">${order}</text>
+            </svg>
+        `;
+    }
+
+    createPopupContent(stop) {
+        // Create a simple, clean popup that's guaranteed to be readable on mobile
+        return `
+            <div class="simple-popup-card">
+                <div class="popup-header">
                     <img src="${stop.imagePath}" alt="${stop.title}" 
-                         class="map-popup-image"
                          onerror="this.src='assets/img/illustration-2.png'">
-                    <div class="map-popup-overlay"></div>
-                    <div class="map-popup-content">
-                        <div class="map-popup-badges">
-                            <span class="map-popup-badge-stop">Tappa ${stop.order}</span>
-                            ${stop.duration ? `<span class="map-popup-badge-duration">
-                                <i class="fas fa-clock"></i>${stop.duration}
-                            </span>` : ''}
-                        </div>
-                        <h3 class="map-popup-title">${stop.title}</h3>
+                    <div class="popup-overlay">
+                        <span class="popup-number">Tappa ${stop.order}</span>
+                        ${stop.duration ? `<span class="popup-duration">${stop.duration}</span>` : ''}
                     </div>
                 </div>
                 
-                <!-- Content -->
-                <div class="map-popup-body">
-                    <p class="map-popup-description">${stop.description || 'Scopri questa tappa del tour.'}</p>
+                <div class="popup-content">
+                    <h3 class="popup-title">${stop.title}</h3>
+                    <p class="popup-description">${stop.description || 'Scopri questa tappa del tour.'}</p>
                     
-                    <!-- Action buttons -->
-                    <div class="map-popup-actions">
-                        <a href="index.html#${stop.id}" 
-                           class="map-popup-button-primary"
-                           aria-label="Ascolta l'audio per ${stop.title}">
-                            <i class="fas fa-headphones"></i>
-                            Ascolta
+                    <div class="popup-buttons">
+                        <a href="index.html#${stop.id}" class="btn-primary">
+                            <i class="fas fa-headphones"></i> Ascolta
                         </a>
                         ${stop.googleMapsUrl ? `
-                        <a href="${stop.googleMapsUrl}" target="_blank" rel="noopener"
-                           class="map-popup-button-secondary"
-                           aria-label="Apri ${stop.title} in Google Maps">
-                            <i class="fas fa-external-link-alt"></i>
-                        </a>` : ''}
+                            <a href="${stop.googleMapsUrl}" target="_blank" class="btn-secondary">
+                                <i class="fas fa-map"></i>
+                            </a>
+                        ` : ''}
                     </div>
                 </div>
             </div>
