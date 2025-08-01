@@ -291,10 +291,11 @@ class AudioGuideMap {
                     this.userMarker = L.marker(userLatLng, {
                         icon: L.divIcon({
                             html: `
-                                <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-lg flex items-center justify-center relative">
-                                    <div class="w-2 h-2 bg-white rounded-full"></div>
-                                    <div class="absolute w-8 h-8 bg-blue-500/20 rounded-full animate-ping"></div>
-                                </div>
+                                <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" fill="#3b82f6" fill-opacity="0.2"/>
+                                    <circle cx="12" cy="12" r="6" fill="#3b82f6" stroke="white" stroke-width="2"/>
+                                    <circle cx="12" cy="12" r="2" fill="white"/>
+                                </svg>
                             `,
                             className: 'user-location-marker',
                             iconSize: [24, 24],
