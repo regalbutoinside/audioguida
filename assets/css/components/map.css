@@ -95,7 +95,7 @@
     position: relative;
     width: 32px;
     height: 32px;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%); /* Center the marker on the point */
     /* Ensure fixed dimensions */
     max-width: none !important;
     min-width: 32px;
@@ -163,15 +163,71 @@
 }
 
 /* Custom Popup Styles */
+.leaflet-popup {
+    z-index: 1000 !important;
+    /* Ensure popup is always on top */
+    position: relative !important;
+}
+
 .leaflet-popup-content-wrapper {
     background: white;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
     border: 1px solid #e5e7eb;
     overflow: hidden;
     /* Ensure proper box model */
     max-width: 300px !important;
     min-width: 250px;
+    /* Better visibility */
+    position: relative;
+    z-index: 1001 !important;
+    /* Prevent overlap with other elements */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+.leaflet-popup-tip {
+    background: white;
+    border: 1px solid #e5e7eb;
+    z-index: 1000 !important;
+}
+
+/* Minimal circular close button */
+.leaflet-popup-close-button {
+    z-index: 1002 !important;
+    color: #6b7280 !important;
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    text-decoration: none !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-radius: 50% !important;
+    width: 24px !important;
+    height: 24px !important;
+    line-height: 24px !important;
+    text-align: center !important;
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+.leaflet-popup-close-button:hover {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: #374151 !important;
+    transform: scale(1.05) !important;
+}
+
+.leaflet-popup-close-button:active {
+    transform: scale(0.95) !important;
+}
+
+.leaflet-popup-close-button:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 .leaflet-popup-content {
@@ -182,11 +238,310 @@
     /* Override global constraints */
     max-width: none !important;
     width: auto !important;
+    /* Ensure proper scrolling */
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Improved Popup Styles */
+.improved-popup .leaflet-popup-content-wrapper {
+    border-radius: 16px; /* Increased border radius for more rounded corners */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: none;
+    overflow: visible;
+    max-width: 280px !important;
+    min-width: 250px;
+    max-height: none !important;
+}
+
+.improved-popup .leaflet-popup-content {
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+    max-height: none !important;
+    overflow: visible !important;
+    width: auto !important;
+}
+
+/* Improve popup tip positioning - tip points DOWN towards marker */
+.improved-popup .leaflet-popup-tip {
+    width: 17px;
+    height: 17px;
+    padding: 1px;
+    margin: -10px auto 0;
+    background: white;
+    border: none;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+    transform: rotate(45deg); /* Ensure tip points down */
+}
+
+.improved-popup .leaflet-popup-tip-container {
+    width: 40px;
+    height: 20px;
+    position: absolute;
+    left: 50%;
+    margin-left: -20px;
+    bottom: -10px; /* Position at bottom of popup */
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Ensure popup appears above other elements */
+.improved-popup {
+    z-index: 1000 !important;
+}
+
+.popup-content-wrapper {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-height: none;
+    overflow: visible;
+}
+
+.popup-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 16px 16px 0 0; /* Rounded top corners */
+}
+
+.popup-number-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 13px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.popup-title-section {
+    flex: 1;
+    min-width: 0;
+    padding-right: 36px; /* Adjusted padding for smaller close button */
+}
+
+.popup-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: white;
+    word-wrap: break-word; /* Allow title to wrap if too long */
+    overflow-wrap: break-word;
+}
+
+.popup-body {
+    padding: 16px;
+    background: white;
+    border-radius: 0 0 16px 16px; /* Rounded bottom corners */
+}
+
+.popup-description {
+    margin: 0 0 16px 0;
+    color: #444;
+    font-size: 14px;
+    line-height: 1.5;
+    max-height: none;
+    overflow: visible;
+}
+
+/* New styles for expandable description */
+.popup-description-container {
+    margin-bottom: 16px;
+}
+
+.popup-description-short,
+.popup-description-full {
+    margin: 0 0 8px 0;
+    color: #444;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.popup-expand-btn {
+    background: none;
+    border: none;
+    color: #667eea;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.popup-expand-btn:hover {
+    color: #764ba2;
+}
+
+.popup-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: center; /* Center the single button */
+}
+
+.popup-btn {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px; /* Slightly more rounded */
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    max-width: 140px; /* Limit width for better appearance */
+}
+
+.popup-btn.centered {
+    flex: none; /* Don't stretch the centered button */
+    width: 120px; /* Fixed width for centered button */
+}
+
+.popup-btn i {
+    font-size: 12px;
+}
+
+.popup-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.popup-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.popup-btn.secondary {
+    background: #f8f9fa;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.popup-btn.secondary:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+/* Ensure popup is always fully visible */
+.leaflet-popup {
+    margin-bottom: 20px !important;
+}
+
+/* Responsive adjustments for improved popup */
+@media (max-width: 768px) {
+    .improved-popup .leaflet-popup-content-wrapper {
+        max-width: 260px !important;
+        min-width: 240px;
+    }
+    
+    .popup-header {
+        padding: 14px;
+    }
+    
+    .popup-body {
+        padding: 14px;
+    }
+    
+    .popup-title {
+        font-size: 15px;
+    }
+    
+    .popup-title-section {
+        padding-right: 30px; /* Reduce padding on smaller screens */
+    }
+    
+    .popup-btn {
+        padding: 9px 10px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .improved-popup .leaflet-popup-content-wrapper {
+        max-width: 240px !important;
+        min-width: 220px;
+    }
+    
+    .popup-header {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .popup-body {
+        padding: 12px;
+    }
+    
+    .popup-number-badge {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+    }
+    
+    .popup-title {
+        font-size: 14px;
+    }
+    
+    .popup-title-section {
+        padding-right: 28px; /* Even less padding on very small screens */
+    }
+    
+    .popup-description {
+        font-size: 13px;
+        margin-bottom: 12px;
+    }
+    
+    .popup-actions {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .popup-btn {
+        padding: 8px;
+        font-size: 12px;
+    }
 }
 
 .custom-popup .popup-content {
     padding: 0;
     max-width: none !important;
+}
+
+/* Responsive popup sizing */
+@media (max-width: 768px) {
+    .leaflet-popup-content-wrapper {
+        max-width: 280px !important;
+        min-width: 220px;
+    }
+    
+    .leaflet-popup-content {
+        max-height: 350px;
+    }
+}
+
+@media (max-width: 480px) {
+    .leaflet-popup-content-wrapper {
+        max-width: 250px !important;
+        min-width: 200px;
+    }
+    
+    .leaflet-popup-content {
+        max-height: 300px;
+    }
 }
 
 .popup-header {

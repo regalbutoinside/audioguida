@@ -97,8 +97,12 @@ class MapManager {
 
             // Add event listeners
             this.map.on('zoomend', () => {
-                // Event listener for future features
                 console.log('Zoom level:', this.map.getZoom());
+            });
+
+            this.map.on('popupclose', () => {
+                this.clearAllHighlights();
+                // Remove auto-centering behavior that can cause jarring movements
             });
 
             console.log('Map initialized successfully');
@@ -152,10 +156,10 @@ class MapManager {
             }
         });
         
-        // Fit map to show all markers after a short delay
+        // Fit map to show all markers after a short delay (only on initial load)
         setTimeout(() => {
             if (this.markers.length > 0) {
-                this.fitToMarkers();
+                this.fitToMarkersInitial();
             }
         }, 1000);
     }
@@ -184,14 +188,19 @@ class MapManager {
         // Create popup content
         const popupContent = this.createPopupContent(stop);
         marker.bindPopup(popupContent, {
-            maxWidth: 300,
-            className: 'custom-popup',
-            offset: [0, -10]
+            maxWidth: 280,
+            minWidth: 250,
+            className: 'improved-popup',
+            closeButton: true,
+            autoPan: false, // Disable automatic panning, we'll handle it manually
+            autoPanPadding: [50, 50],
+            keepInView: true
+            // No offset - rely on popupAnchor positioning
         });
 
-        // Add click event for highlighting
-        marker.on('click', () => {
-            this.highlightMarker(stop.id);
+        // Add enhanced click behavior
+        marker.on('click', (e) => {
+            this.handleMarkerClick(marker, stop, e);
         });
 
         // Add to map
@@ -212,8 +221,8 @@ class MapManager {
                 </div>
             `,
             iconSize: [32, 32],
-            iconAnchor: [16, 16],
-            popupAnchor: [0, -20]
+            iconAnchor: [16, 16], // Center the marker on the point
+            popupAnchor: [0, -120] // Position popup tip well above the marker (increased)
         });
     }
 
@@ -223,72 +232,128 @@ class MapManager {
         
         const title = currentLangData?.title || stop.title || stop.id;
         const description = currentLangData?.description || stop.description || '';
-        const duration = currentLangData?.duration || stop.duration || '';
+        
+        // Truncate description for preview (first 80 characters)
+        const shortDescription = description.length > 80 ? description.substring(0, 80) + '...' : description;
+        const hasLongDescription = description.length > 80;
         
         return `
-            <div class="popup-content">
+            <div class="popup-content-wrapper">
                 <div class="popup-header">
-                    <span class="popup-number">${stop.order}</span>
-                    <h3 class="popup-title">${title}</h3>
+                    <div class="popup-number-badge">${stop.order}</div>
+                    <div class="popup-title-section">
+                        <h3 class="popup-title">${title}</h3>
+                    </div>
                 </div>
-                ${duration ? `<div class="popup-duration">⏱️ ${duration}</div>` : ''}
-                <p class="popup-description">${description}</p>
-                <div class="popup-actions">
-                    <button class="popup-btn primary" onclick="mapManager.startAudio('${stop.id}')">
-                        🎵 Ascolta
-                    </button>
-                    <button class="popup-btn secondary" onclick="mapManager.viewDetails('${stop.id}')">
-                        ℹ️ Dettagli
-                    </button>
+                <div class="popup-body">
+                    <div class="popup-description-container">
+                        <p class="popup-description-short">${shortDescription}</p>
+                        ${hasLongDescription ? `
+                            <p class="popup-description-full" style="display: none;">${description}</p>
+                            <button class="popup-expand-btn" onclick="this.parentElement.querySelector('.popup-description-short').style.display = this.parentElement.querySelector('.popup-description-short').style.display === 'none' ? 'block' : 'none'; this.parentElement.querySelector('.popup-description-full').style.display = this.parentElement.querySelector('.popup-description-full').style.display === 'none' ? 'block' : 'none'; this.textContent = this.textContent === 'Leggi di più' ? 'Leggi meno' : 'Leggi di più';">
+                                Leggi di più
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="popup-actions">
+                        <button class="popup-btn primary centered" onclick="mapManager.startAudio('${stop.id}')" title="Ascolta l'audio di questa tappa">
+                            <i class="fas fa-play"></i> Ascolta
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
+    }
+
+    // Simplified marker click handler
+    handleMarkerClick(marker, stop, event) {
+        // Clear all highlights first
+        this.clearAllHighlights();
+        
+        // Add highlight to clicked marker
+        const markerElement = marker.getElement();
+        if (markerElement) {
+            markerElement.classList.add('highlighted');
+            
+            // Auto-remove highlight after 4 seconds
+            setTimeout(() => {
+                if (markerElement.classList.contains('highlighted')) {
+                    markerElement.classList.remove('highlighted');
+                }
+            }, 4000);
+        }
+        
+        // Get current map bounds and center
+        const mapBounds = this.map.getBounds();
+        const mapCenter = this.map.getCenter();
+        const markerLatLng = marker.getLatLng();
+        
+        // Calculate if marker is in viewport and if popup would be visible
+        const mapSize = this.map.getSize();
+        const markerPoint = this.map.latLngToContainerPoint(markerLatLng);
+        
+        // Check if popup would be clipped at the top (popup height ~150px)
+        const popupHeight = 150;
+        const needsPanning = markerPoint.y < popupHeight + 20;
+        
+        if (needsPanning) {
+            // Calculate offset to center popup properly
+            const zoom = this.map.getZoom();
+            const offsetLat = 0.002 / Math.pow(2, zoom - 15); // Increased offset
+            const adjustedLatLng = [markerLatLng.lat + offsetLat, markerLatLng.lng];
+            
+            // Pan to adjusted position with smooth animation
+            this.map.panTo(adjustedLatLng, {
+                animate: true,
+                duration: 0.5
+            });
+            
+            // Open popup after panning completes
+            setTimeout(() => {
+                marker.openPopup();
+            }, 500);
+        } else {
+            // Popup fits in current view, open immediately
+            marker.openPopup();
+        }
     }
 
     highlightStop(stopId) {
         this.highlightMarker(stopId);
     }
 
-    highlightMarker(stopId) {
-        // Remove highlight from all markers first
+    // Clear highlights from all markers
+    clearAllHighlights() {
         this.markers.forEach(markerData => {
             const markerElement = markerData.marker.getElement();
             if (markerElement) {
                 markerElement.classList.remove('highlighted');
             }
         });
+    }
 
-        // Find and highlight the specific marker
+    // Simplified highlight marker method 
+    highlightMarker(stopId) {
         const markerData = this.markers.find(m => m.stopId === stopId);
-        
         if (markerData) {
-            const { marker, stop } = markerData;
+            // Clear highlights first
+            this.clearAllHighlights();
             
-            // Add highlight class
-            const markerElement = marker.getElement();
+            // Add highlight to marker
+            const markerElement = markerData.marker.getElement();
             if (markerElement) {
                 markerElement.classList.add('highlighted');
+                
+                // Auto-remove highlight after 4 seconds
+                setTimeout(() => {
+                    if (markerElement.classList.contains('highlighted')) {
+                        markerElement.classList.remove('highlighted');
+                    }
+                }, 4000);
             }
             
-            // Center map on marker with smooth animation
-            this.map.flyTo(
-                [stop.coordinates.latitude, stop.coordinates.longitude], 
-                this.defaultZoom + 1,
-                {
-                    duration: 1.5,
-                    easeLinearity: 0.25
-                }
-            );
-            
-            // Open popup
-            marker.openPopup();
-            
-            // Remove highlight after 3 seconds
-            setTimeout(() => {
-                if (markerElement) {
-                    markerElement.classList.remove('highlighted');
-                }
-            }, 3000);
+            // Just open popup without panning to avoid jarring movements
+            markerData.marker.openPopup();
         }
     }
 
@@ -318,6 +383,27 @@ class MapManager {
     updateLanguage(newLanguage) {
         this.currentLanguage = newLanguage;
         // Language update logic can be added later if needed
+    }
+
+    // Method to fit map to all markers (only for initial load)
+    fitToMarkersInitial() {
+        if (this.markers.length === 0) return;
+        
+        try {
+            const group = new L.featureGroup(this.markers.map(m => m.marker));
+            const bounds = group.getBounds();
+            
+            // Add padding and fit bounds (only on initial load)
+            this.map.fitBounds(bounds.pad(0.1), {
+                maxZoom: 17,
+                animate: true,
+                duration: 1
+            });
+        } catch (error) {
+            console.error('Error fitting bounds:', error);
+            // Fallback: center on Regalbuto
+            this.map.setView(this.centerCoords, this.defaultZoom);
+        }
     }
 
     // Method to fit map to all markers
