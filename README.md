@@ -1,6 +1,13 @@
-# Audioguida di Regalbuto
 
-Un progetto digitale per scoprire la storia, l’arte e le tradizioni di Regalbuto (EN) attraverso un percorso audio interattivo.
+<p align="center">
+    <a href="https://audioguidaregalbuto.it">
+        <img src="https://raw.githubusercontent.com/regalbutoinside/audioguida/refs/heads/main/assets/img/favicon.png" height="100" alt="Logo dell'audioguida di Regalbuto. Prospetto stilizzato della chiesa madre con attorno delle cuffie.">
+    </a>
+</p>
+
+<h1 align="center">Audioguida di Regalbuto</h1>
+
+Un progetto digitale per scoprire la storia, l'arte e le tradizioni di Regalbuto (EN) attraverso un percorso audio interattivo.
 
 ## Descrizione
 Questa audioguida accompagna cittadine, cittadini, visitatrici e visitatori in un tour a tappe tra i principali luoghi di interesse della città, con audio disponibili in 5 lingue. Il sito offre:
@@ -46,7 +53,7 @@ Le tracce audio della guida sono disponibili anche su Spotify:
 ## Licenza e credits
 
 <a href="https://creativecommons.org/licenses/by-sa/4.0/">
-    <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-sa.png" height="40" alt="Licenza CC BY-SA 4.0">
+        <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-sa.png" height="40" alt="Licenza CC BY-SA 4.0">
 </a>
 
 **Audioguida di Regalbuto** un progetto di _Regalbuto Inside_. Le tracce audio e le trascrizioni sono concessi in [Licenza CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
