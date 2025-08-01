@@ -95,9 +95,6 @@ class MapManager {
                 imperial: false
             }).addTo(this.map);
 
-            // Add custom map controls
-            this.addMapControls();
-
             // Add event listeners
             this.map.on('zoomend', () => {
                 // Event listener for future features
@@ -342,65 +339,6 @@ class MapManager {
             // Fallback: center on Regalbuto
             this.map.setView(this.centerCoords, this.defaultZoom);
         }
-    }
-
-    // Create map legend/info control
-    createMapInfo() {
-        const info = L.control({ position: 'topright' });
-        
-        info.onAdd = function (map) {
-            const div = L.DomUtil.create('div', 'map-info');
-            div.innerHTML = `
-                <div class="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 p-4 max-w-xs">
-                    <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
-                        <i class="fas fa-info-circle text-primary mr-2"></i>
-                        Audioguida Regalbuto
-                    </h4>
-                    <p class="text-sm text-gray-600 mb-3">
-                        Clicca sui marker numerati per scoprire le tappe del tour
-                    </p>
-                    <div class="flex items-center text-xs text-gray-500">
-                        <div class="w-6 h-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">1</div>
-                        Esempio marker
-                    </div>
-                </div>
-            `;
-            return div;
-        };
-        
-        return info;
-    }
-
-    // Add map controls
-    addMapControls() {
-        // Add info control
-        const mapInfo = this.createMapInfo();
-        mapInfo.addTo(this.map);
-
-        // Add zoom home control
-        const homeControl = L.control({ position: 'topleft' });
-        
-        homeControl.onAdd = (map) => {
-            const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-            div.innerHTML = '<a href="#" title="Mostra tutte le tappe" role="button" aria-label="Mostra tutte le tappe"><i class="fas fa-home"></i></a>';
-            div.style.backgroundColor = 'white';
-            div.style.backgroundSize = "30px 30px";
-            div.style.width = '30px';
-            div.style.height = '30px';
-            div.style.lineHeight = '30px';
-            div.style.textAlign = 'center';
-            div.style.textDecoration = 'none';
-            div.style.color = '#333';
-            
-            div.onclick = (e) => {
-                e.preventDefault();
-                this.fitToMarkers();
-            };
-            
-            return div;
-        };
-        
-        homeControl.addTo(this.map);
     }
 
     // Method to get marker by stop ID
