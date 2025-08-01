@@ -182,13 +182,13 @@ class AudioGuideMap {
 
         return L.divIcon({
             html: `
-                <div class="relative flex items-center justify-center">
-                    <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg border-2 transform hover:scale-110 transition-transform" style="border-color: ${iconColor};">
-                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs" style="background-color: ${iconColor};">
+                <div class="map-marker-wrapper">
+                    <div class="map-marker-main" style="border-color: ${iconColor};">
+                        <div class="map-marker-number" style="background-color: ${iconColor};">
                             ${order}
                         </div>
                     </div>
-                    <div class="absolute -bottom-1 w-0 h-0 border-l-2 border-r-2 border-t-4 border-transparent" style="border-top-color: ${iconColor};"></div>
+                    <div class="map-marker-tip" style="border-top-color: ${iconColor};"></div>
                 </div>
             `,
             className: 'custom-marker-icon',
@@ -199,41 +199,41 @@ class AudioGuideMap {
     }
 
     createPopupContent(stop) {
-        // Create popup content that matches home page card design
+        // Create popup content that matches home page card design exactly
         return `
-            <div class="bg-white rounded-xl overflow-hidden">
+            <div class="map-popup-card">
                 <!-- Header with image -->
-                <div class="relative h-32 overflow-hidden">
+                <div class="map-popup-header">
                     <img src="${stop.imagePath}" alt="${stop.title}" 
-                         class="w-full h-full object-cover"
+                         class="map-popup-image"
                          onerror="this.src='assets/img/illustration-2.png'">
-                    <div class="absolute inset-0 bg-gradient-to-t from-primary/60 via-primary/20 to-transparent"></div>
-                    <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="inline-block px-2 py-1 bg-white/30 backdrop-blur-sm rounded-full text-xs font-medium">Tappa ${stop.order}</span>
-                            ${stop.duration ? `<span class="inline-flex items-center px-2 py-1 bg-white/30 backdrop-blur-sm rounded-full text-xs font-medium">
-                                <i class="fas fa-clock mr-1"></i>${stop.duration}
+                    <div class="map-popup-overlay"></div>
+                    <div class="map-popup-content">
+                        <div class="map-popup-badges">
+                            <span class="map-popup-badge-stop">Tappa ${stop.order}</span>
+                            ${stop.duration ? `<span class="map-popup-badge-duration">
+                                <i class="fas fa-clock"></i>${stop.duration}
                             </span>` : ''}
                         </div>
-                        <h3 class="text-lg font-bold leading-tight">${stop.title}</h3>
+                        <h3 class="map-popup-title">${stop.title}</h3>
                     </div>
                 </div>
                 
                 <!-- Content -->
-                <div class="p-4">
-                    <p class="text-gray-600 text-sm mb-4 line-clamp-3">${stop.description || 'Scopri questa tappa del tour.'}</p>
+                <div class="map-popup-body">
+                    <p class="map-popup-description">${stop.description || 'Scopri questa tappa del tour.'}</p>
                     
                     <!-- Action buttons -->
-                    <div class="flex gap-2">
+                    <div class="map-popup-actions">
                         <a href="index.html#${stop.id}" 
-                           class="flex-1 px-3 py-2 bg-primary text-white text-center text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center"
+                           class="map-popup-button-primary"
                            aria-label="Ascolta l'audio per ${stop.title}">
-                            <i class="fas fa-headphones mr-2"></i>
+                            <i class="fas fa-headphones"></i>
                             Ascolta
                         </a>
                         ${stop.googleMapsUrl ? `
                         <a href="${stop.googleMapsUrl}" target="_blank" rel="noopener"
-                           class="px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                           class="map-popup-button-secondary"
                            aria-label="Apri ${stop.title} in Google Maps">
                             <i class="fas fa-external-link-alt"></i>
                         </a>` : ''}
